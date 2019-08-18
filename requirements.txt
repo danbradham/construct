@@ -1,8 +1,0 @@
-bson
-cachetools
-cerberus
-fsfs
-future
-git+git://github.com/spyder-ide/qtsass@master#egg=qtsass
-pymongo
-pyyaml

@@ -1,0 +1,44 @@
+[tool.poetry]
+name = "construct"
+version = "0.2.0"
+description = "Manage projects and libraries."
+license = "MIT"
+readme = "README.rst"
+homepage = "https://github.com/construct-org/construct"
+repository = "https://github.com/construct-org/construct"
+authors = [
+    "Dan Bradham <danielbradham@gmail.com>"
+]
+classifiers = [
+    "Programming Language :: Python",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX"
+]
+
+[tool.poetry.scripts]
+pyconstruct = "construct.cli.__main__:main"
+construct_sh = { path = "bin/construct" }
+construct_bat = { path = "bin/construct.bat" }
+construct_ps1 = { path = "bin/construct.ps1" }
+
+[tool.poetry.dependencies]
+python = "~2.7 || ^3.5"
+bson = "^0.5.8"
+cachetools = "^3.1"
+cerberus = "^1.3"
+fsfs = "^0.2.6"
+future = "^0.17.1"
+qtsass = "^0.1.1"
+pymongo = "^3.9"
+pyyaml = "^5.1"
+pathlib2 = { version = "^2.3", python = "~2.7 || ~3.4" }
+PySide2 = { version = "^5.13", python = "^3.5" }
+
+[tool.poetry.dev-dependencies]
+invoke = "^1.3"
+nose = "^1.3"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
