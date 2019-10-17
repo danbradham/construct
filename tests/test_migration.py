@@ -5,7 +5,7 @@ from __future__ import absolute_import
 # Third party imports
 import fsfs
 
-# Local imports
+# Construct imports
 import construct
 from construct import migrations
 from construct.settings import restore_default_settings

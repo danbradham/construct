@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 
 
+class ActionError(Exception):
+    '''Raised when an Action fails to run.'''
+
+
 class InvalidSettings(Exception):
     '''Raise when your settings are invalid.'''
 

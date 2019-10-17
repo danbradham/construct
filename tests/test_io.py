@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-# Local imports
+# Construct imports
 import construct
 from construct.settings import restore_default_settings
 

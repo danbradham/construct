@@ -5,7 +5,7 @@ from __future__ import print_function
 # Standard library imports
 import sys
 
-# Local imports
+# Construct imports
 import construct
 from construct.ui import resources
 

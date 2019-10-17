@@ -8,7 +8,9 @@ from copy import deepcopy
 # Local imports
 from ..errors import ValidationError
 from .fsfs import FsfsLayer
-from .mongo import MongoLayer
+
+
+# from .mongo import MongoLayer
 
 
 class IO(object):

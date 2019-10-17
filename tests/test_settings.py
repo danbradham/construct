@@ -7,7 +7,7 @@ import os
 import shutil
 import sys
 
-# Local imports
+# Construct imports
 from construct.constants import DEFAULT_SETTINGS
 from construct.errors import InvalidSettings, ValidationError
 from construct.settings import Settings, restore_default_settings

@@ -7,7 +7,7 @@ import os
 import shutil
 import sys
 
-# Local imports
+# Construct imports
 import construct
 from construct.errors import InvalidSettings
 

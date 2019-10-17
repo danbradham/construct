@@ -2,17 +2,12 @@
 
 from __future__ import absolute_import
 
-# Standard library imports
-import os
-import shutil
-import sys
-
-# Local imports
+# Construct imports
 import construct
 from construct.extensions import Extension
 
 # Local imports
-from . import data_dir, setup_api, teardown_api
+from . import setup_api, teardown_api
 
 
 def setup_module():
@@ -56,7 +51,7 @@ def test_simple_extension():
     '''Register and use a simple extension'''
 
     api = construct.API(__name__)
-    api.extensions.register(Counter)
+    api.register_extension(Counter)
 
     assert hasattr(api, 'increment')
     assert hasattr(api, 'decrement')
@@ -67,7 +62,7 @@ def test_simple_extension():
     api.decrement()
     assert api.count() == 0
 
-    api.extensions.unregister(Counter)
+    api.unregister_extension(Counter)
     assert not hasattr(api, 'increment')
     assert not hasattr(api, 'decrement')
     assert not hasattr(api, 'count')
@@ -79,5 +74,5 @@ def test_builtins_loaded():
     from construct import ext, hosts
     api = construct.API(__name__)
 
-    for ext in ext.extensions + hosts.extensions:
-        assert api.extensions.loaded(ext.identifier)
+    for e in ext.extensions + hosts.extensions:
+        assert api.extensions.loaded(e.identifier)

@@ -5,9 +5,9 @@ from __future__ import absolute_import
 # Standard library imports
 import inspect
 import logging
+from collections import OrderedDict
 
 # Third party imports
-# Third library imports
 import entrypoints
 
 # Local imports
@@ -200,9 +200,10 @@ def is_extension(obj):
     return isinstance(obj, EXTENSION_TYPES)
 
 
-class ExtensionManager(dict):
+class ExtensionManager(OrderedDict):
 
     def __init__(self, api):
+        super(ExtensionManager, self).__init__()
         self.api = api
         self.path = self.api.path
         self.settings = self.api.settings
@@ -226,7 +227,8 @@ class ExtensionManager(dict):
         '''Register an Extension'''
 
         if self.loaded(ext):
-            _log.debug('Extension already loaded: %s' % ext)
+            _log.error('Extension already loaded: %s' % ext)
+            return
 
         _log.debug('Loading extension: %s' % ext)
         if is_extension_type(ext):
@@ -265,7 +267,7 @@ class ExtensionManager(dict):
     def loaded(self, ext):
         '''Check if an Extension has been loaded.'''
 
-        identifier = getattr(ext, 'identifer', ext)
+        identifier = getattr(ext, 'identifier', ext)
         return identifier in self
 
     def discover(self):
