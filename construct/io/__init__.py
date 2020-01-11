@@ -474,10 +474,7 @@ class IO(object):
         data = data or {}
         data.setdefault('name', name)
         data.setdefault('parent_id', parent['_id'])
-        if parent['_type'] == 'project':
-            data['project_id'] = parent['_id']
-        else:
-            data['project_id'] = parent['project_id']
+        data['project_id'] = parent['project_id']
 
         self.api.send('before_new_task', self.api, data)
 

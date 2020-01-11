@@ -32,7 +32,7 @@ tree:
     valueschema:
         type: string
     schema:
-        groups:
+        folders:
             type: string
         asset:
             type: string
@@ -50,7 +50,8 @@ tree:
         folders: ''
         asset: '{asset}'
         asset_work: '{asset}/{task}/work/{host}'
-        asset_publish: '{asset}/{task}/publish/{ext}'
-        asset_reviews: '{asset}/{task}/review'
-        file: '{task}_{name}_v{version:0>3d}.{ext}'
-        sequence: '{task}_{name}_v{version:0>3}.{frame:0>4d}.{ext}'
+        asset_publish: '{asset}/{task}/publish/{host}'
+        asset_review: '{asset}/review'
+        file: '{name}_{task}_v{version:0>3d}.{ext}'
+        instance_file: '{name}_{task}_{instance:0>2d}_v{version:0>3d}.{ext}'
+        sequence: '{task}_{name}_v{version:0>3d}.{frame:0>4d}.{ext}'

@@ -3,10 +3,13 @@
 from __future__ import absolute_import
 
 # Standard library imports
+import inspect
 import os
 import shutil
 import sys
+import warnings
 from contextlib import contextmanager
+from functools import wraps
 
 # Third party imports
 import yaml
@@ -16,16 +19,19 @@ from .compat import Mapping, Path, basestring
 
 
 __all__ = [
+    'classproperty',
+    'deprecated',
+    'ensure_exists',
+    'get_lib_path',
+    'get_subclasses',
     'import_file',
     'isolated_imports',
     'iter_modules',
     'unipath',
-    'ensure_exists',
     'unload_modules',
-    'get_lib_path',
+    'update_dict',
     'update_env',
     'update_envvar',
-    'update_dict'
 ]
 package_path = Path(__file__).parent.resolve()
 
@@ -220,6 +226,21 @@ def copy_file(src, dest):
     shutil.copy(str(src), str(dest))
 
 
+def get_subclasses(typ, subclasses=None, recursive=True):
+    '''Get all subclasses of the given typ.'''
+
+    if subclasses is None:
+        subclasses = []
+
+    for subcls in typ.__subclasses__():
+        if subcls not in subclasses:
+            subclasses.append(subcls)
+        if recursive:
+            get_subclasses(subcls, subclasses)
+
+    return subclasses
+
+
 class classproperty(object):
     '''Like a property but for a Class object.'''
 
@@ -228,3 +249,42 @@ class classproperty(object):
 
     def __get__(self, obj, type):
         return self.fn(type)
+
+
+def deprecated(msg, silent=False):
+    '''Decorator that marks a function, method, or class as deprecated.'''
+
+    def deprecate_obj(obj):
+        obj._deprecated = True
+        obj._deprecation_warning = msg
+
+        if silent:
+            return obj
+
+        elif inspect.isclass(obj):
+
+            _init = obj.__init__
+
+            def warn_on_init(self, *args, **kwargs):
+                warnings.warn(obj._deprecation_warning)
+                _init(self, *args, **kwargs)
+
+            obj.__init__ = warn_on_init
+            return obj
+
+        else:
+
+            @wraps(obj)
+            def warn_on_call(*args, **kwargs):
+                warnings.warn(obj._deprecation_warning)
+                return obj(*args, **kwargs)
+
+            return warn_on_call
+
+    return deprecate_obj
+
+
+def is_deprecated(obj):
+    '''Return True if an obj is marked as deprecated.'''
+
+    return getattr(obj, '_deprecated', False)

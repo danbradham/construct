@@ -50,3 +50,13 @@ class Path(list):
             potential_path = path / resource
             if potential_path.exists():
                 return potential_path
+
+    def glob(self, pattern):
+        '''Glob all paths using the specified pattern'''
+
+        results = []
+        for path in self:
+            found = path.glob(pattern)
+            if found:
+                results.extend(found)
+        return results

@@ -15,7 +15,7 @@ from ..compat import Path
 _log = logging.getLogger(__name__)
 
 
-def _quick_search_by_id(path, _id, max_depth=10, return_typ=None):
+def search_by_id(path, _id, max_depth=10, return_typ=None):
     '''Search by id using recursive globbing'''
 
     roots = [Path(path)]
@@ -38,7 +38,7 @@ def _quick_search_by_id(path, _id, max_depth=10, return_typ=None):
         roots = next_roots
 
 
-def _quick_search_by_name(path, name, max_depth=10, return_typ=None):
+def search_by_name(path, name, max_depth=10, return_typ=None):
     '''Search by name using recursive globbing'''
 
     roots = [Path(path)]
@@ -73,6 +73,21 @@ def _quick_search_by_name(path, name, max_depth=10, return_typ=None):
         if return_typ:
             best = return_typ(best.as_posix())
         return best
+
+
+def select_by_name(path, selector, max_depth=10, return_typ=None):
+    '''Search for a nested name using a selector string.
+
+    Selector strings are / separated names that look like file paths but
+    can use partial names.
+    '''
+
+    names = selector.split('/')
+    for name in names:
+        path = search_by_name(path, name, max_depth, return_typ)
+        if path is None:
+            return
+    return path
 
 
 class FsfsLayer(object):
@@ -323,7 +338,7 @@ class FsfsLayer(object):
                 return project
 
             project_root = self.get_path_to(project)
-            match = _quick_search_by_id(
+            match = search_by_id(
                 project_root,
                 entity['parent_id'],
                 return_typ=fsfs.get_entry
@@ -378,7 +393,7 @@ class FsfsLayer(object):
             project = self.get_project_by_id(entity['project_id'])
             project_path = self.get_path_to(project)
             folders_path = project_path / project['tree']['folders']
-            match = _quick_search_by_id(folders_path, entity['_id'])
+            match = search_by_id(folders_path, entity['_id'])
             if match:
                 return match
 
