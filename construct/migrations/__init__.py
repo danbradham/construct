@@ -9,6 +9,7 @@ from inspect import getmembers
 
 # Local imports
 from ..compat import Path, basestring
+from . import utils
 
 
 _log = logging.getLogger(__name__)
@@ -110,6 +111,10 @@ def is_migration(obj):
 def initial_migration(api, project):
     from .initial import InitialMigration
     InitialMigration(api, project).forward()
+
+
+def requires_initial_migration(project):
+    return 'schema_version' not in project
 
 
 def get_migrations(migrations_dir=None):

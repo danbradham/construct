@@ -32,7 +32,7 @@ DEFAULT_LOCATIONS = {
     }
 }
 DEFAULT_TREE = {
-    'asset': '{mount}/{project}/{bin}/{asset_type}/{asset}',
+    'asset': '{mount}/{project}/{bin}/{asset}',
     'workspace': '{mount}/{project}/{bin}/{asset}/work/{task}/{host}',
     'publish': '{mount}/{project}/{bin}/{asset}/publish/{item}/v{version:0>3d}',
     'review': '{mount}/{project}/{bin}/{asset}/review/{task}/{host}',

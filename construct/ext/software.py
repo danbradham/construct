@@ -27,7 +27,7 @@ class Software(Extension):
     label = 'Software Extension'
 
     def is_available(self, ctx):
-        return ctx.project
+        return ctx['project']
 
     def load(self, api):
         api.settings.add_section('software', 'software')
@@ -91,7 +91,8 @@ class Software(Extension):
         '''
 
         ext = None
-        project = project or self.api.context.project
+        ctx = self.api.get_context()
+        project = project or ctx['project']
 
         if file:
             ext = os.path.splitext(file)[-1]
@@ -179,6 +180,7 @@ class Software(Extension):
                 '%s has no registered ext.' % software['host']
             )
 
+        self.api.send('before_launch', self.api, software, env, ctx)
         _log.debug('Launching %s' % name.title())
         _run(cmd, env=env)
 
@@ -199,7 +201,7 @@ class Software(Extension):
             raise OSError('Can not open %s with %s' % (name, file))
 
         ctx = kwargs.pop('context', self.api.context).copy()
-        ctx.file = file
+        ctx['file'] = file
         args = list(args or software['args'])
         cmd = [cmd] + args + [file]
         env = _get_software_env(software, ctx, self.api.path)
@@ -215,12 +217,13 @@ class Software(Extension):
                 '%s has no registered ext.' % software['host']
             )
 
+        self.api.send('before_launch', self.api, software, env, ctx)
         _log.debug('Launching %s' % name.title())
         _run(cmd, env=env)
 
 
 def _get_command(software):
-    '''Get the platform specific command used to execute a piece of software.'''
+    '''Get the platform specific command used to launch the software.'''
 
     cmd = software['cmd'].get(platform, None)
     if isinstance(cmd, basestring):

@@ -6,14 +6,13 @@ from __future__ import absolute_import
 import atexit
 import inspect
 import logging
-from functools import wraps
 from logging.config import dictConfig
 
 # Local imports
-from . import schemas
-from .compat import Mapping, basestring
+from . import migrations, schemas
+from .compat import Mapping, basestring, wraps, zip_longest
 from .constants import DEFAULT_LOGGING
-from .context import Context
+from .context import Context, validate_context
 from .errors import ContextError
 from .events import EventManager
 from .extensions import ExtensionManager
@@ -85,6 +84,7 @@ class API(object):
         self.extensions = ExtensionManager(self)
         self.context = Context()
         self.schemas = schemas
+        self.migrations = migrations
         self.io = IO(self)
         self.ui = UIManager(self)
         self._logging_dict = kwargs.pop('logging', None)
@@ -179,7 +179,7 @@ class API(object):
     def get_context(self):
         '''Get a copy of the current context.
 
-        .. seealso:: :class:`construct.context.Context`
+        .. seealso:: :class:`construct.context.Context.copy`
         '''
 
         return self.context.copy()
@@ -191,7 +191,7 @@ class API(object):
             Set the active context permanently::
 
                 >>> new_ctx = api.get_context()
-                >>> new_ctx.project = 'A_PROJECT'
+                >>> new_ctx['project'] = 'A_PROJECT'
                 >>> api.set_context(new_context)
 
             Temporarily set context::
@@ -231,13 +231,50 @@ class API(object):
 
         self.context = self.context_from_path(path)
 
+    def _context_from_obj(self, obj, data):
+        if obj['_type'] == 'project':
+            data['project'] = obj['name']
+            project = self.io.get_project_by_id(obj['_id'])
+            project_path = self.io.get_path_to(project)
+            location, mount = self.get_mount_from_path(project_path)
+            data['location'] = location
+            data['mount'] = mount
+        elif obj['type'] == 'asset':
+            data['asset'] = obj['name']
+            data['bin'] = obj['bin']
+            project = self.io.get_project_by_id(obj['project_id'])
+            self._context_from_obj(project, data)
+
+    def context_from_obj(self, obj, data=None):
+        '''Returns a Context instance from the specific data obj.
+
+        Arguments:
+            obj (dict) - Project or asset data.
+        '''
+
+        data = {}
+        self._context_from_obj(obj, data)
+
+        context = Context(
+            host=self.context['host'],
+            location=self.context['location'],
+            mount=self.context['mount'],
+            **data
+        )
+        return context
+
+    def validate_context(self, context):
+        '''Returns True if the context is valid.'''
+
+        return validate_context(self, context)
+
     def context_from_path(self, path):
 
-        ctx = Context(host=self.context.host)
+        ctx = Context(host=self.context['host'])
 
         path = unipath(path)
         if path.is_file():
-            ctx.file = path.as_posix()
+            ctx['file'] = path.as_posix()
 
         location_mount = self.get_mount_from_path(path)
         if location_mount:
@@ -252,6 +289,74 @@ class API(object):
 
         return ctx
 
+    def context_from_uri(self, uri):
+        '''Create a Context object from an uri.
+
+        Examples:
+
+            >>> api.context_from_uri('cons://local/projects/project')
+            {'location': 'local', 'mount': 'projects', 'project': 'project'}
+
+            >>> api.context_from_uri('local/projects/project')
+            {'location': 'local', 'mount': 'projects', 'project': 'project'}
+        '''
+
+        # Split off uri_prefix
+        uri_prefix = None
+        if '://' in uri:
+            uri_prefix, uri = uri.split('://', 1)
+            uri_prefix += '://'
+
+        uri_parts = uri.strip(' /\\').split('/')
+        uri_parts_map = [
+            'location',
+            'mount',
+            'project',
+            'bin',
+            'asset',
+            'workspace',
+            'task',
+            'file',
+        ]
+
+        context = Context(
+            host=self.context['host'],  # Inject host from current context
+        )
+        for key, value in zip_longest(uri_parts_map, uri_parts):
+            context[key] = value
+        return context
+
+    def uri_from_context(self, context):
+        '''Create a Context object from an uri.
+
+        Examples:
+
+            >>> ctx = Context(
+            ...     location='local',
+            ...     mount='projects',
+            ...     project='project'
+            ... )
+            >>> api.uri_from_context(ctx)
+            'cons://local/projects/project'
+        '''
+
+        uri_parts = []
+        uri_parts_map = [
+            'location',
+            'mount',
+            'project',
+            'bin',
+            'asset',
+            'task',
+            'workspace',
+            'file',
+        ]
+        for key in uri_parts_map:
+            value = context.get(key, None)
+            if value:
+                uri_parts.append(value)
+        return 'cons://' + '/'.join(uri_parts)
+
     def set_mount(self, location, mount):
         self.update_context(location=location, mount=mount)
 
@@ -264,11 +369,11 @@ class API(object):
             mount (str): Name of mount or context['mount']
         '''
 
-        location = location or self.context.location
-        mount = mount or self.context.mount
+        location = location or self.context['location']
+        mount = mount or self.context['mount']
         path = self.settings['locations'][location][mount]
         if isinstance(path, dict):
-            path = path[self.context.platform]
+            path = path[self.context['platform']]
             ensure_exists(path)
             return unipath(path)
         else:
@@ -294,7 +399,7 @@ class API(object):
     def host(self):
         '''Get the active Host Extension.'''
 
-        return self.extensions.get(self.context.host, None)
+        return self.extensions.get(self.context['host'], None)
 
     def define(self, event, doc):
         '''Define a new event
@@ -395,10 +500,12 @@ class API(object):
         else:
             _log.debug(name + ' was not registered with api.extend.')
 
-    def show(self, data):
+    def show(self, data, *include_keys):
         '''Pretty print a dict or list of dicts.'''
 
         if isinstance(data, Mapping):
+            if include_keys:
+                data = {k: data[k] for k in include_keys if k in data}
             print(yaml_dump(dict(data)).decode('utf-8'))
             return
         elif isinstance(data, basestring):
@@ -407,8 +514,8 @@ class API(object):
 
         try:
             for obj in data:
+                self.show(obj, *include_keys)
                 print('')
-                print(yaml_dump(obj).decode('utf-8'))
         except:
             print('Can not format: %s' % data)
 

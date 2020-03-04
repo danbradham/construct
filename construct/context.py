@@ -11,9 +11,10 @@ import os
 # Local imports
 from .compat import basestring
 from .constants import DEFAULT_HOST, PLATFORM
+from .errors import ContextError
 
 
-__all__ = ['Context']
+__all__ = ['Context', 'validate_context']
 
 
 def encode(obj):
@@ -29,11 +30,9 @@ def decode(obj):
 
 
 class Context(dict):
-    '''Represents a state used to interact with Construct. The Construct object
-    provides both item and attribute access.
+    '''Represents a state used to interact with Construct.
 
     >>> ctx = Context()
-    >>> ctx.project = {'name': 'my_project'}
     >>> ctx['project'] == ctx.project
 
     Context objects can be loaded from and stored in environment variables
@@ -65,10 +64,9 @@ class Context(dict):
     | file      | Path to current working file                         |
     +-----------+------------------------------------------------------+
 
-    The above keys default to None so when checking context it can be
-    convenient to use attribute access.
+    The above keys default to None, convenient for quickly checking context.
 
-    >>> if ctx.project and ctx.task:
+    >>> if ctx['project'] and ctx['task']:
     ...     # Do something that depends on a project and task
 
     '''
@@ -95,18 +93,37 @@ class Context(dict):
         self.update(**self._defaults)
         self.update(**kwargs)
 
-    def __getattr__(self, name):
-        try:
-            return self[name]
-        except KeyError:
-            raise AttributeError(name)
+    def trim(self, key):
+        '''Returns a new context with context beyond key set to None.
 
-    def __setattr__(self, name, value):
-        self[name] = value
+        Example:
+            >>> c = Context(location='location', mount='mount',
+            ...             project='project', bin='bin', asset='asset')
+            >>> c2 = c.trim('project')
+            >>> assert c2['project'] == 'project'
+            >>> assert c2['bin'] is None
+            >>> assert c2['asset'] is None
+        '''
+        context = Context()
+        include = [
+            'host',
+            'location',
+            'mount',
+            'project',
+            'bin',
+            'asset',
+            'task'
+            'workspace',
+        ]
+        include = include[:include.index(key) + 1]
+        context.update(**{k: self[k] for k in include})
+        return context
 
-    def copy(self):
+    def set(self, key, value):
+        self[key] = value
+
+    def copy(self, *include_keys):
         '''Copy this context'''
-
         return self.__class__(**copy.deepcopy(self))
 
     def load(self, env=None, **kwargs):
@@ -160,3 +177,63 @@ class Context(dict):
         for key in cls._keys:
             env_key = ('construct_' + key).upper()
             os.environ.pop(env_key, None)
+
+
+def validate_context(api, context):
+    '''Return True if context is Valid.'''
+
+    # validate context
+    locations = api.get_locations()
+    if context['location'] and context['location'] not in locations:
+        raise ContextError('Location does not exist: ' + context['location'])
+
+    mounts = locations[context['location']]
+    if context['mount'] and context['mount'] not in mounts:
+        raise ContextError('Mount does not exist: ' + context['mount'])
+
+    io_context = {
+        'location': context['location'],
+        'mount': context['mount'],
+    }
+
+    project = None
+    if context['project']:
+        with api.set_context(io_context):
+            project = api.io.get_project(context['project'])
+        if not project:
+            raise ContextError('Project does not exist: ' + context['project'])
+        path = api.io.get_path_to(project)
+        location, mount = api.get_mount_from_path(path)
+        context['mount'] = mount
+
+    bin = None
+    if context['bin']:
+        conditions = [
+            not project,
+            context['bin'] not in project['bins'],
+        ]
+        if any(conditions):
+            raise ContextError('Bin does not exist: ' + context['bin'])
+        bin = context['bin']
+
+    asset = None
+    if context['asset']:
+        conditions = [
+            not project,
+            not bin,
+            context['asset'] not in project['assets'],
+        ]
+        if any(conditions):
+            raise ContextError('Asset does not exist: ' + context['asset'])
+        asset = context['asset']
+
+    task = None
+    if context['task']:
+        conditions = [
+            not project,
+            context['task'] not in project['task_types']
+        ]
+        if any(conditions):
+            raise ContextError('Task is invalid: ' + context['task'])
+
+    return context

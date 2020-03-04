@@ -2,6 +2,7 @@ invoke
 isort
 mock; python_version<"3"
 nose
+nose-exclude
 PySide2; python_version>"3.4"
 sphinx
 sphinx_rtd_theme

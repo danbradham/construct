@@ -43,6 +43,7 @@ def yaml_dump(data, **kwargs):
     kwargs.setdefault('allow_unicode', True)
     kwargs.setdefault('encoding', 'utf-8')
     kwargs.setdefault('default_flow_style', False)
+    kwargs.setdefault('sort_keys', False)
     return yaml.safe_dump(data, **kwargs)
 
 

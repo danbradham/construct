@@ -6,6 +6,14 @@ from Qt.QtGui import QColor, QIcon, QIconEngine, QImage, QPainter, QPixmap
 from Qt.QtSvg import QSvgRenderer
 
 
+__all__ = [
+    'SvgIconEngine',
+    'SvgIcon',
+    'FontIconEngine',
+    'FontIcon',
+]
+
+
 class SvgIconEngine(QIconEngine):
     '''Handles painting of SVG icons.'''
 
@@ -67,7 +75,9 @@ class FontIconEngine(QIconEngine):
         painter.setFont(font)
         if self.parent:
             # Set color from parent
-            painter.setPen(self.parent.palette().text().color())
+            palette = self.parent.palette()
+            color = palette.color(palette.Normal, palette.Text)
+            painter.setPen(color)
         painter.drawText(rect, alignment, self.char)
 
 

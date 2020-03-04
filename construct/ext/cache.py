@@ -37,6 +37,18 @@ class Cache(Extension):
     def __contains__(self, key):
         return self.cache.__contains__(key)
 
+    def to_dict(self):
+        return self.cache.to_dict()
+
+    def keys(self):
+        return self.cache.keys()
+
+    def values(self):
+        return self.cache.values()
+
+    def items(self):
+        return self.cache.items()
+
     def get(self, key, default=missing):
         return self.cache.get(key, default)
 
@@ -87,6 +99,18 @@ class FSCache(object):
 
     def _file_for(self, key):
         return self.cache_dir / key
+
+    def to_dict(self):
+        return {k: self.get(k) for k in self.keys()}
+
+    def keys(self):
+        return [c.name for c in self.cache_dir.iterdir() if c.is_file()]
+
+    def values(self):
+        return [self.get(k) for k in self.keys()]
+
+    def items(self):
+        return [(k, self.get(k)) for k in self.keys()]
 
     def get(self, key, default=missing):
         key_file = self._file_for(key)

@@ -10,6 +10,11 @@
 }
 
 
+@function set_alpha($color, $opacity) {
+    @return rgba(red($color), green($color), blue($color), $opacity);
+}
+
+
 @function brightness($color) {
     @return ((red($color) + green($color) + blue($color)) / 3) / 255;
 }

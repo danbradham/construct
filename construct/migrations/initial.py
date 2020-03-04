@@ -5,11 +5,9 @@ from __future__ import absolute_import
 # Standard library imports
 import logging
 
-# Third party imports
-import fsfs
-
 # Local imports
 from ..compat import Path
+from ..io import fsfs
 from . import Migration
 
 
@@ -23,8 +21,18 @@ class InitialMigration(object):
     projects are migrated over.
     '''
 
+    tree = {
+        'asset': '{mount}/{project}/<bin_root>/{bin}/{group}/{asset}',
+        'workspace': '{mount}/{project}/<bin_root>/{bin}/{group}/{asset}/{task}/work/{host}',
+        'publish': '{mount}/{project}/<bin_root>/{bin}/{group}/{asset}/{task}/publish/{task_short}_{name}/v{version:0>3d}',
+        'review': '{mount}/{project}/review/{task}/{bin}/{asset}',
+        'render': '{mount}/{project}/<bin_root>/renders/{host}/{bin}/{asset}',
+        'file': '{task_short}_{name}_v{version:0>3d}.{ext}',
+        'file_sequence': '{task_short}_{name}_v{version:0>3d}.{frame}.{ext}',
+    }
     project_tags = set(['project'])
-    folder_tags = set(['collection', 'asset_type', 'sequence'])
+    bin_tags = set(['collection'])
+    group_tags = set(['asset_type', 'sequence'])
     asset_tags = set(['asset', 'shot'])
     task_tags = set(['task'])
     workspace_tags = set(['workspace'])
@@ -34,124 +42,131 @@ class InitialMigration(object):
         self.path = path
 
     def forward(self):
-        query = fsfs.search(
-            root=str(self.path),
-            depth=3,
-            levels=10,
-            skip_root=False
-        )
-        for entry in query:
-            self.migrate(entry)
+        # Migrate root - should be project
+        self.migrate(self.path)
+
+        # Migrate bins and assets
+        query = fsfs.search(self.path, max_depth=10)
+        for path in query:
+            self.migrate(path)
 
     def backward(self):
         pass
 
-    def migrate(self, entry):
-        tags = set(entry.tags)
+    def migrate(self, path):
+        tags = set(fsfs.get_tags(path))
 
         if tags & self.project_tags:
-            self.migrate_project(entry)
-        elif tags & self.folder_tags:
-            self.migrate_folder(entry)
+            self.migrate_project(path)
+        elif tags & self.bin_tags:
+            self.migrate_bin(path)
         elif tags & self.asset_tags:
-            self.migrate_asset(entry)
+            self.migrate_asset(path)
         elif tags & self.task_tags:
-            self.migrate_task(entry)
+            self.migrate_task(path)
         elif tags & self.workspace_tags:
-            self.migrate_workspace(entry)
+            self.migrate_workspace(path)
         else:
-            print('WARNING: could not migrate %s' % entry)
+            _log.debug('Could not migrate %s' % path)
 
-    def migrate_project(self, project):
-        _log.debug('Found project: %s' % project)
+    def migrate_project(self, path):
+        _log.debug('Found project: %s' % path)
 
-        data = project.read()
-
+        data = fsfs.read(path)
         data.update(
-            name=project.name,
-            locations={},
+            name=path.name,
+            tree=self.tree,
         )
-
-        location_mount = self.api.get_mount_from_path(project.path)
-        if location_mount:
-            location, mount = location_mount
-            data['locations'][location] = mount
 
         # Fill data with defaults from schema
         data = self.api.schemas.validate('project', data)
 
         # Update tree
-        first_child = project.children().one()
+        first_child = next(fsfs.search(path))
         if first_child:
-            folders_path = Path(first_child.path).parent
+            bin_path = first_child.parent
             try:
-                folders = str(folders_path.relative_to(project.path))
+                bin_root = str(bin_path.relative_to(path))
             except ValueError:
-                folders = ''
-        data['tree']['folders'] = folders
+                bin_root = None
 
-        project.tag('project')
-        project.uuid = data['_id']
-        project.write(**data)
+        for k, v in list(data['tree'].items()):
+            if '<bin_root>' in v:
+                if bin_root:
+                    data['tree'][k] = v.replace('<bin_root>', bin_root)
+                else:
+                    data['tree'][k] = v.replace('/<bin_root>', '')
 
-    def migrate_folder(self, folder):
-        project = folder.parents().tags('project').one()
-        parent = folder.parent()
-        _log.debug('Found folder: %s/%s' % (parent.name, folder.name))
+        fsfs.init(path)
+        fsfs.tag(path, 'project')
+        fsfs.set_id(path, data['_id'])
+        fsfs.write(path, replace=True, **data)
 
-        data = folder.read()
-        data.update(
-            name=folder.name,
-            project_id=project.uuid,
-            parent_id=parent.uuid,
-        )
-        data = self.api.schemas.validate('folder', data)
+    def migrate_bin(self, path):
+        project_path = fsfs.parent(path, tag='project')
+        _log.debug('Found bin: %s/%s' % (project_path.name, path.name))
 
-        folder.tag('folder')
-        folder.uuid = data['_id']
-        folder.write(**data)
+        project = fsfs.read(project_path)
+        bins = project.get('bins', {})
 
-    def migrate_asset(self, asset):
-        project = asset.parents().tags('project').one()
-        parent = asset.parent()
-        _log.debug('Found asset: %s/%s' % (parent.name, asset.name))
+        if path.name in bins:
+            return
 
-        if 'shot' in asset.tags:
+        bin_data = {
+            'name': path.name,
+            'icon': '',
+            'order': len(bins),
+        }
+        bins[bin_data['name']] = bin_data
+
+        project['bins'] = bins
+        fsfs.write(project_path, **project)
+
+        fsfs.init(path)
+        fsfs.tag(path, 'bin')
+        fsfs.write(path, **bin_data)
+
+    def migrate_asset(self, path):
+        project_path = fsfs.parent(path, tag='project')
+        _log.debug('Found asset: %s/%s' % (project_path.name, path.name))
+        group_path = path.parent
+        bin_path = path.parent.parent
+
+        project = fsfs.read(project_path)
+        tags = fsfs.get_tags(path)
+        data = fsfs.read(path)
+
+        if 'shot' in tags:
             asset_type = 'shot'
         else:
             asset_type = 'asset'
 
-        data = asset.read()
         data.update(
-            name=asset.name,
-            project_id=project.uuid,
-            parent_id=parent.uuid,
+            project_id=project['_id'],
+            name=path.name,
             asset_type=asset_type,
+            group=group_path.name,
+            bin=bin_path.name,
         )
+
+        # Fill data with defaults from schema
         data = self.api.schemas.validate('asset', data)
 
-        asset.tag('asset')
-        asset.uuid = data['_id']
-        asset.write(**data)
+        fsfs.init(path)
+        fsfs.tag(path, 'asset')
+        fsfs.write(path, **data)
+
+        project['assets'][data['name']] = {
+            '_id': data['_id'],
+            'name': data['name'],
+            'bin': data['bin'],
+            'asset_type': data['asset_type'],
+            'group': data['group'],
+        }
+        fsfs.write(project_path, **project)
 
     def migrate_task(self, task):
-        project = task.parents().tags('project').one()
-        parent = task.parent()
-        _log.debug('Found task: %s/%s' % (parent.name, task.name))
-
-        data = task.read()
-        data.update(
-            name=task.name,
-            project_id=project.uuid,
-            parent_id=parent.uuid,
-        )
-        data = self.api.schemas.validate('task', data)
-
-        task.tag('task')
-        task.uuid = data['_id']
-        task.write(**data)
+        pass
 
     def migrate_workspace(self, workspace):
-        project = workspace.parents().tags('project').one()
-        parent = workspace.parent()
-        _log.debug('Found workspace: %s/%s' % (parent.name, workspace.name))
+        pass

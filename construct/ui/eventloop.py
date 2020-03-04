@@ -2,8 +2,8 @@
 
 from __future__ import absolute_import
 
-# Standard library imports
-from functools import wraps
+# Local imports
+from ..compat import wraps
 
 
 class EventLoop(object):
@@ -14,6 +14,9 @@ class EventLoop(object):
         self.event_loop = event_loop
         self.standalone = standalone
         self.running = not self.standalone
+
+    def quit(self):
+        self.event_loop.quit()
 
     def start(self):
         if self.running:
@@ -56,8 +59,6 @@ def requires_event_loop(fn):
 
     @wraps(fn)
     def start_then_call(*args, **kwargs):
-        from Qt.QtCore import QTimer
-
         event_loop = get_event_loop()
         result = fn(*args, **kwargs)
         return result

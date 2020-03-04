@@ -7,8 +7,10 @@ Uses Path objects instead of passing strings and fsfs.Entry objects around.
 from __future__ import absolute_import
 
 # Standard library imports
+import errno
 import logging
 import shutil
+from copy import deepcopy
 
 # Third party imports
 from bson.objectid import ObjectId
@@ -19,9 +21,51 @@ from ..utils import update_dict, yaml_dump, yaml_load
 
 
 _log = logging.getLogger(__name__)
+missing = object()
 search_pattern = '*/.data/uuid_*'
 data_dir = '.data'
 data_file = 'data'
+IGNORE_ERRNO = (
+    errno.EACCES,
+    errno.ENOENT,
+    errno.EIO,
+    errno.EPERM,
+    59,  # WinError network access
+    errno.EINVAL,  # WinError network access
+)
+
+
+class FileCache(object):
+    '''Returns data for file only when mtime is unchanged.'''
+
+    def __init__(self):
+        self._cache = {}
+        self._mtimes = {}
+
+    def pop(self, file):
+        self._mtimes.pop(file, None)
+        return self._cache.pop(file, None)
+
+    def set(self, file, data):
+        self._cache[file] = deepcopy(data)
+        self._mtimes[file] = file.stat().st_mtime
+
+    def get(self, file, default=missing):
+        if file not in self._cache:
+            if default is missing:
+                raise KeyError('File not in cache: ' + file.stem)
+            return default
+
+        if self._mtimes[file] < file.stat().st_mtime:
+            self.pop(file)
+            if default is missing:
+                raise KeyError('File out of date: ' + file.stem)
+            return default
+
+        return deepcopy(self._cache[file])
+
+
+cache = FileCache()
 
 
 def search_by_id(path, _id, max_depth=10):
@@ -64,10 +108,23 @@ def search_by_name(path, name, max_depth=10):
         return best
 
 
+def safe_iterdir(path):
+
+    contents = path.iterdir()
+    while True:
+        try:
+            yield next(contents)
+        except (OSError, WindowsError) as e:
+            if e.errno not in IGNORE_ERRNO:
+                _log.exception('Unrecognized error in safe_iterdir.')
+        except StopIteration:
+            return
+
+
 def search(path, max_depth=10):
     '''Yields directories with metadata.'''
 
-    roots = list(path.iterdir())
+    roots = list(safe_iterdir(path))
     level = 0
 
     while roots and level < max_depth:
@@ -75,17 +132,31 @@ def search(path, max_depth=10):
         next_roots = []
 
         for root in roots:
-
             if root.is_file() or root.name == '.data':
                 continue
 
             if exists(root):
                 yield root
 
-            next_roots.extend(list(path.iterdir()))
+            next_roots.extend(list(safe_iterdir(root)))
 
         level += 1
         roots = next_roots
+
+    return
+
+
+def parents(path, tag=None):
+
+    for parent in path.parents:
+        if exists(parent):
+            if tag and tag in get_tags(parent):
+                yield parent
+
+
+def parent(path, tag=None):
+    for parent in parents(path, tag):
+        return parent
 
 
 def exists(path):
@@ -133,17 +204,19 @@ def read(path, *keys):
     '''
 
     path = Path(path)
-
     file = path / data_dir / data_file
-
     if not file.exists():
         raise OSError('Data file does not exist: ' + file.as_posix())
 
-    raw_data = file.read_text(encoding='utf-8')
-    if not raw_data:
-        return {}
+    try:
+        data = cache.get(file)
+    except KeyError:
+        raw_data = file.read_text(encoding='utf-8')
+        if not raw_data:
+            return {}
 
-    data = yaml_load(raw_data)
+        data = yaml_load(raw_data)
+        cache.set(file, data)
 
     if not keys:
         return data
@@ -167,11 +240,9 @@ def write(path, replace=False, **data):
     '''
 
     path = Path(path)
-
     init(path)
 
     file = path / data_dir / data_file
-
     if not replace:
         new_data = read(path)
         update_dict(new_data, data)
@@ -179,6 +250,9 @@ def write(path, replace=False, **data):
         new_data = data
 
     file.write_bytes(yaml_dump(new_data))
+
+    cache.pop(file)
+    return new_data
 
 
 def set_id(path, value):
@@ -237,7 +311,7 @@ def delete(path, remove_root=False):
 
     path_data_dir = path / data_dir
     if path_data_dir.exists():
-        path_data_dir.unlink()
+        shutil.rmtree(path_data_dir.as_posix())
 
     if remove_root:
         shutil.rmtree(path.as_posix())

@@ -1,0 +1,403 @@
+// Base theme
+// A Mixin used to generate subthemes
+@mixin base(
+    $primary: #CC4455,
+    $on_primary: #000000,
+    $surface: #FFFFFF,
+    $on_surface: #000000,
+    $bg: #000000,
+    $on_bg: #FFFFFF,
+) {
+
+
+    // Base Style //
+
+
+    background: $surface;
+
+    * {
+        color: $on_surface;
+    }
+
+    QFrame#line {
+        background: none;
+        color: $bg;
+        border: $border_style $bg;
+    }
+
+    // Menu Style //
+
+    QMenu {
+        background-color: $surface;
+        border: $border-style $bg;
+        menu-scrollable: 1;
+
+        &::icon {
+            padding: 8px 8px 8px 8px;
+            min-width: 24px
+        }
+
+        &::item {
+            padding: 8px 8px 8px 24px;
+            background-color: $transparent;
+            min-width: 144px;
+        }
+
+        &::item:selected {
+            background-color: fade-out($primary, 0.55);
+            border: $border-style fade-out($primary, 0.55);
+        }
+
+        &::item:pressed {
+            color: $on_primary;
+            background-color: $primary;
+        }
+    }
+
+
+    // Icons and Button Styles //
+
+    #icon {
+        outline: none;
+        border: 0;
+        padding: 0;
+        margin: 0;
+    }
+
+    QPushButton[type="text"] {
+        padding: 8px 16px 8px 16px;
+        border: $border-style vary($surface, 10%);
+        border-radius: $border-radius;
+
+        &:disabled {
+            color: vary($surface, 15%);
+        }
+        &:hover {
+            color: $on_primary;
+            background-color: set_alpha($primary, 0.45);
+            border: $border-style $primary;
+        }
+        &:focus {
+            outline: none;
+            border: $border-style $primary;
+        }
+        &:pressed, &:checked {
+            color: $on_primary;
+            background-color: $primary;
+            border: $border-style $primary;
+        }
+    }
+
+    QPushButton[type="icon"] {
+        outline: none;
+        padding: 0;
+        margin: 0;
+        border: 0;
+        border-radius: $border-radius;
+
+        &:disabled {
+            color: vary($surface, 15%);
+        }
+        &:hover {
+            background-color: set_alpha($primary, 0.45);
+            border: $border-style $primary;
+        }
+        &:focus {
+            outline: none;
+            border: $border-style $primary;
+        }
+        &:pressed, &:checked {
+            background-color: $primary;
+            border: $border-style $primary;
+        }
+    }
+
+    // Controls //
+
+    QLineEdit {
+        border: $border-style $bg;
+        border-radius: 1px;
+        background: $surface;
+        color: $on_surface;
+        padding: 4px 8px 4px 8px;
+
+        &:focus {
+            border: $border-style $primary;
+            border-radius: $border-radius;
+            background: $surface;
+            color: $on_surface;
+            padding: 0px 8px 0px 8px;
+        }
+    }
+
+
+
+    QListView,
+    QTreeView {
+        background: $transparent;
+        border: 0;
+        outline: none;
+        padding: 0;
+        show-decoration-selected: 1;
+
+        &:disabled {
+            border: 0;
+            color: vary($surface, 15%);
+        }
+
+        &::item {
+            padding: 6px 0px 6px 0px;
+            background-color: $transparent;
+        }
+        &::branch {
+            padding: 0;
+        }
+        &::item:pressed,
+        &::item:selected,
+        &::branch:selected {
+            color: $on_primary;
+            background-color: $primary;
+        }
+        &::item:!selected:hover,
+        &::branch:!selected:hover {
+            color: $on_primary;
+            background-color: set_alpha($primary, 0.55);
+            border-top: $border-style $primary;
+            border-bottom: $border-style $primary;
+        }
+        &::branch:closed:has-children:adjoins-item {
+            border-image: none;
+            image: resource("icons/folder.svg");
+        }
+        &::branch:open:has-children:adjoins-item {
+            border-image: none;
+            image: resource("icons/folder_open.svg");
+        }
+    }
+
+    QScrollBar {
+
+        &:vertical {
+            border: 0;
+            background: $bg;
+            width: 8px;
+            padding: 2px;
+            margin: 8px 0px 8px 0px;
+        }
+        &::handle:vertical {
+            background: set_alpha($on_bg, 0.75);
+            border: 0;
+            border-radius: 2px;
+        }
+        &::handle:vertical:hover {
+            background: $on_bg;
+            border: 0;
+            border-radius: 2px;
+        }
+        &::add-line:vertical {
+            border: 0;
+            background: $bg;
+            height: 8px;
+            subcontrol-position: bottom;
+            subcontrol-origin: margin;
+        }
+
+        &::sub-line:vertical {
+             border: 0;
+             background: $bg;
+             height: 8px;
+             subcontrol-position: top;
+             subcontrol-origin: margin;
+        }
+        &::up-arrow:vertical {}
+
+        &::down-arrow:vertical {}
+
+        &::add-page:vertical, &::sub-page:vertical {
+            background: none;
+        }
+
+        &:horizontal {
+            border: 0;
+            background: $bg;
+            height: 8px;
+            padding: 2px;
+            margin: 0px 8px 0px 8px;
+        }
+        &::handle:horizontal {
+            background: set_alpha($on_bg, 0.75);
+            border: 0;
+            border-radius: 2px;
+        }
+        &::handle:horizontal:hover {
+            background: $on_bg;
+            border: 0;
+            border-radius: 2px;
+        }
+        &::add-line:horizontal {
+            border: 0;
+            background: $bg;
+            width: 8px;
+            subcontrol-position: right;
+            subcontrol-origin: margin;
+        }
+
+        &::sub-line:horizontal {
+             border: 0;
+             background: $bg;
+             width: 8px;
+             subcontrol-position: left;
+             subcontrol-origin: margin;
+        }
+        &::left-arrow:horizontal {}
+
+        &::right-arrow:horizontal {}
+
+        &::add-page:horizontal, &::sub-page:horizontal {
+            background: none;
+        }
+    }
+
+    QSplitter {
+
+        &::handle {
+            subcontrol-position: top;
+            border-left: $border-style $bg;
+            background: $transparent;
+            image: resource('icons/arrow_right.svg');
+        }
+
+        &::handle:horizontal {
+            width: 14px;
+        }
+
+        &::handle:vertical {
+            height: 14px;
+        }
+
+        &::handle:pressed {
+            image: resource('icons/arrow_right_solid.svg');
+        }
+    }
+
+
+    // Navigation crumbs //
+
+
+    #crumbs {
+        margin: 0;
+        padding: 0;
+    }
+
+    #crumb {
+        margin: 0;
+        padding: 0;
+        border-radius: 1;
+
+        &:hover {
+            color: $on_primary;
+            background-color: set_alpha($primary, 0.65);
+        }
+
+        QPushButton {
+            margin: 0;
+            padding: 0px 8px 0px 8px;
+            border-radius: 1px;
+
+            &:disabled {
+                color: vary($surface, 15%);
+            }
+            &:hover {
+                color: $on_primary;
+                border: $border-style $primary;
+            }
+            &:focus {
+                outline: none;
+                border: $border-style $primary;
+            }
+            &:pressed {
+                color: $on_primary;
+                background-color: $primary;
+            }
+            &::menu-indicator {
+                image: resource("icons/arrow_right_solid.svg");
+                width: 12px;
+                height: 12px;
+                subcontrol-origin: padding;
+                subcontrol-position: center;
+            }
+
+            &::menu-indicator:pressed,
+            &::menu-indicator:open {
+                image: resource("icons/arrow_down_solid.svg");
+                width: 12px;
+                height: 12px;
+                subcontrol-origin: padding;
+                subcontrol-position: center;
+            }
+        }
+    }
+
+    #bookmarks {
+        QPushButton {
+            padding: 6px 8px 6px 8px;
+            border: 0;
+            border-radius: $border-radius;
+
+            &:disabled {
+                border: 0;
+                color: vary($surface, 15%);
+            }
+            &:hover {
+                color: $on_primary;
+                background-color: set_alpha($primary, 0.45);
+                border: $border-style $primary;
+            }
+            &:focus {
+                outline: none;
+                border: $border-style $primary;
+            }
+            &:pressed {
+                color: $on_primary;
+                background-color: $primary;
+                border: $border-style $primary;
+            }
+        }
+
+        QListView::item {
+            padding: 6px 8px 6px 8px;
+        }
+    }
+
+    #SidebarTabs {
+        background: $bg;
+
+        QPushButton {
+            padding: 8px 16px 8px 16px;
+            border: 0;
+            color: vary($on_surface, 15%);
+            border-top-left-radius: 1px;
+            border-top-right-radius: 1px;
+            border-bottom-right-radius: 0px;
+            border-bottom-left-radius: 0px;
+
+            &:disabled {
+                color: vary($surface, 15%);
+            }
+            &:hover {
+                color: $on_surface;
+                background-color: vary($bg, 5%);
+            }
+            &:focus {
+                outline: none;
+                border: $border-style $primary;
+            }
+            &:pressed, &:checked {
+                color: $on_surface;
+                background-color: $surface;
+                border: 0;
+            }
+        }
+    }
+
+}

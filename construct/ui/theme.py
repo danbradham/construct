@@ -4,15 +4,16 @@ from __future__ import absolute_import
 
 # Standard library imports
 import logging
-from functools import wraps
+import re
 
 # Third party imports
 import qtsass
 
 # Local imports
-from ..compat import basestring
+from ..compat import basestring, wraps
 from ..types import WeakSet
-from . import resources, scale
+from . import resources
+from .scale import pt, px
 
 
 _log = logging.getLogger(__name__)
@@ -131,21 +132,6 @@ class Theme(object):
 
     defaults = dict(
         name='default',
-        font_stack='Roboto',
-        font_size='12pt',
-        font_weight='400',
-        primary='#FF5862',
-        primary_variant='#D72F57',
-        on_primary='#FFFFFF',
-        alert='#FACE49',
-        error='#F15555',
-        success='#7EDC9E',
-        info='#87CDEB',
-        on_secondary='#000000',
-        background='#33333D',
-        on_background='#F1F1F3',
-        surface='#4F4F59',
-        on_surface='#F1F1F3',
     )
     color_variables = [
         'primary',
@@ -215,7 +201,9 @@ class Theme(object):
         var_tmpl = '${}: {};\n'
         rgb_tmpl = '${}: rgb({}, {}, {});\n'
         rgba_tmpl = '${}: rgba({}, {}, {}, {});\n'
-        for var in self.variables:
+        for var in self.color_variables:
+            if not hasattr(self, var):
+                continue
             value = getattr(self, var)
             if isinstance(value, basestring):
                 sass += var_tmpl.format(var, value)
@@ -243,11 +231,17 @@ class Theme(object):
                 str(self.resources.path / 'styles'),
             ],
             custom_functions={
-                'res_url': sass_res_url(self),
-                'scale_pt': sass_scale_pt(self),
-                'scale_px': sass_scale_px(self),
+                'resource': sass_resource(self),
             },
         )
+
+        # Scale pixel values
+        def dpiaware_scale(value):
+            value, unit = int(value.group(1)), value.group(2)
+            return str(px(value)) + unit
+
+        css = re.sub(r'(\d+)(px)', dpiaware_scale, css)
+
         return css
 
     def refresh_stylesheet(self):
@@ -294,6 +288,8 @@ class Theme(object):
         else:
             raise ValueError('Expected rgb tuple or hex code got %s' % value)
 
+        self.refresh_stylesheet()
+
     def hex(self, name):
         '''Return the named color as a hex code string.'''
 
@@ -316,12 +312,18 @@ class Theme(object):
 
         Arguments:
             resource (str):  Path relative to Construct PATH or font icon name
-            size (QSize): Size of pixmap to return
+            size (tuple): Size of pixmap to return
             family (str): Font family for font icon character (optional)
         '''
 
+        from Qt import QtCore
         from Qt.QtGui import QPixmap, QIcon
-        from .icons import FontIcon
+        from .widgets import FontIcon
+
+        if size:
+            size = QtCore.QSize(*px(*size))
+        else:
+            size = QtCore.QSize(*px(24, 24))
 
         path = self.resources.get(resource, None)
         if path:
@@ -346,7 +348,7 @@ class Theme(object):
         '''
 
         from Qt.QtGui import QIcon
-        from .icons import SvgIcon, FontIcon
+        from .widgets import SvgIcon, FontIcon
 
         path = self.resources.get(resource, None)
         if path:
@@ -363,15 +365,15 @@ class Theme(object):
 
 # Sass functions
 
-def sass_res_url(theme):
+def sass_resource(theme):
     '''Get an url for a construct resource.
 
     Usage:
-        QPushButton {qproperty-icon: res_url(icons/plus.svg);}
+        QPushButton {qproperty-icon: resource(icons/plus.svg);}
     '''
-    def res_url(resource):
+    def resolve_resource(resource):
         return 'url("%s")' % theme.resources.get(resource).as_posix()
-    return res_url
+    return resolve_resource
 
 
 def sass_scale_pt(theme):
@@ -383,17 +385,17 @@ def sass_scale_pt(theme):
     '''
     def scale_pt(value):
         if isinstance(value, float):
-            return str(scale.pt(value))
+            return str(pt(value))
 
         # Handle sass types
         import sass
         if isinstance(value, sass.SassNumber):
-            return str(scale.pt(value.value))
+            return str(pt(value.value)) + value.unit
 
         if isinstance(value, sass.SassList):
             result = []
             for item in value.items:
-                result.append(str(scale.pt(item.value)))
+                result.append(str(pt(item.value)) + item.unit)
             return ' '.join(result)
     return scale_pt
 
@@ -408,17 +410,17 @@ def sass_scale_px(theme):
 
     def scale_px(value):
         if isinstance(value, float):
-            return str(scale.px(value))
+            return str(px(value))
 
         # Handle sass types
         import sass
         if isinstance(value, sass.SassNumber):
-            return str(scale.px(value.value))
+            return str(px(value.value)) + value.unit
 
         if isinstance(value, sass.SassList):
             result = []
             for item in value.items:
-                result.append(str(scale.px(item.value)))
+                result.append(str(px(item.value)) + item.unit)
             return ' '.join(result)
     return scale_px
 

@@ -20,13 +20,19 @@ def factor():
     return dpi() / 96.0
 
 
-def px(value):
+def px(*values):
     '''Scale a pixel value based on screen dpi.'''
 
-    return int(factor() * value)
+    if len(values) == 1:
+        return int(factor() * values[0])
+
+    return [int(factor() * value) for value in values]
 
 
-def pt(value):
+def pt(*values):
     '''Scale a point value based on screen dpi.'''
 
-    return int(factor() * value * 1.33)
+    if len(values) == 1:
+        return int(factor() * values[0] * 1.33)
+
+    return [int(factor() * value * 1.33) for value in values]

@@ -1,46 +1,22 @@
-// Fonts
-$font_stack: Roboto !default;
-$font_size: 12pt !default;
-$font_weight: 400 !default;
-
-// Colors
-$primary: #FF5862 !default;
-$primary_variant: #D72F57 !default;
-$on_primary: #FFFFFF !default;
-$alert: #FACE49 !default;
-$error: #F15555 !default;
-$success: #7EDC9E !default;
-$info: #87CDEB !default;
-$on_secondary: #000000 !default;
-$background: #33333D !default;
-$on_background: #F1F1F3 !default;
-$surface: #4F4F59 !default;
-$on_surface: #F1F1F3 !default;
-$transparent: rgba(0, 0, 0, 0);
-
-
+@import 'defaults';
 @import 'funcs';
+@import 'base';
 
 
 // Mixins //
-
-
 @mixin roboto {
     font-family: $font_stack;
     font-weight: $font_weight;
-    font-size: $font_size;
 }
 
 @mixin roboto-light {
     font-family: $font_stack;
     font-weight: $font_weight - 100;
-    font-size: $font_size;
 }
 
 @mixin roboto-medium {
     font-family: $font_stack;
     font-weight: $font_weight + 100;
-    font-size: $font_size;
 }
 
 @mixin icon {
@@ -57,6 +33,7 @@ $transparent: rgba(0, 0, 0, 0);
 
 QWidget {
     @include roboto;
+    font-size: $font-size;
 }
 
 *[status="alert"] {
@@ -86,116 +63,39 @@ QWidget {
 
 #h1 {
     @include roboto;
-    font-size: 24pt;
+    font-size: 24px;
 }
 
 #h2 {
     @include roboto-medium;
-    font-size: 20pt;
+    font-size: 20px;
 }
 
 #h3 {
     @include roboto;
-    font-size: 18pt;
+    font-size: 18px;
 }
 
 #h4 {
     @include roboto;
-    font-size: 14pt;
+    font-size: 14px;
 }
 
 #h5 {
     @include roboto-medium;
-    font-size: 14pt;
+    font-size: 14px;
 }
 
 #p {
     @include roboto;
-    font-size: 12pt;
-}
-
-
-// Base theme
-@mixin base(
-    $primary: #CC4455,
-    $on_primary: #000000,
-    $bg: #FFFFFF,
-    $on_bg: #000000
-) {
-
-    background: $bg;
-
-    * {
-        color: $on_bg;
-    }
-
-    #icon {
-        outline: none;
-        border: 2 solid vary($bg, 5%);
-        border-radius: 3;
-    }
-    #icon:focus {
-        border: 2 solid vary($bg, 15%);
-    }
-    #icon:disabled {
-        border: 0;
-    }
-    #icon:hover {
-        background-color: vary($bg, 5%);
-    }
-    #icon:pressed {
-        background-color: vary($bg, 15%);
-    }
-
-    QPushButton#text-button {
-        padding: scale_pt(8 24 8 24);
-        border: 2 solid vary($bg, 10%);
-        border-radius: 3;
-    }
-    QPushButton#text-button:disabled {
-        color: vary($bg, 15%);
-    }
-    QPushButton#text-button:hover {
-        color: $on_primary;
-        background-color: fade-out($primary, 0.55);
-        border: 2 solid fade-out($primary, 0.55);
-    }
-    QPushButton#text-button:focus {
-        outline: none;
-        border: 2 solid fade-out($primary, 0.25);
-    }
-    QPushButton#text-button:pressed {
-        color: $on_primary;
-        background-color: $primary;
-    }
-    QPushButton#tool-button {
-        padding: scale_pt(8 24 8 24);
-        border-radius: 3;
-        font-size: 8pt;
-    }
-    QPushButton#tool-button:disabled {
-        color: vary($bg, 15%);
-    }
-    QPushButton#tool-button:hover {
-        color: $on_primary;
-        background-color: fade-out($primary, 0.55);
-        border: 2 solid fade-out($primary, 0.55);
-    }
-    QPushButton#tool-button:focus {
-        outline: none;
-        border: 2 solid fade-out($primary, 0.25);
-    }
-    QPushButton#tool-button:pressed {
-        color: $on_primary;
-        background-color: $primary;
-    }
+    font-size: 12px;
 }
 
 
 // Primary colored sub-theme //
 
 
-QWidget#primary {
+QWidget[theme="primary"] {
      @include base(
         $primary_variant,
         $on_primary,
@@ -204,35 +104,37 @@ QWidget#primary {
     );
 }
 
-QDialog#primary {
-    border: 2 solid vary($primary, 20%);
+QDialog[theme="primary"] {
+    border: $border-style vary($primary, 20%);
 }
 
 
 // Surface colored sub-theme //
 
 
-QWidget#surface {
+QWidget[theme="surface"] {
      @include base(
         $primary,
         $on_primary,
         $surface,
         $on_surface,
+        $background,
+        $on_background,
     );
 }
 
-QDialog#surface {
-    border: 2 solid vary($surface, 10%);
+QDialog[theme="surface"] {
+    border: $border-style $background;
 }
 
-QDialog#surface:active {
-    border: 2 solid vary($surface, 20%);
+QDialog[theme="surface"]:active {
+    border: $border-style darken($background, 4);
 }
 
 // Background colored sub-theme //
 
 
-QWidget#background {
+QWidget[theme="background"] {
     @include base(
         $primary,
         $on_primary,
@@ -241,91 +143,91 @@ QWidget#background {
     );
 }
 
-QDialog#background {
-    border: 2 solid vary($background, 10%);
+QDialog[theme="background"] {
+    border: $border-style vary($background, 10%);
 }
 
-QDialog#background:active {
-    border: 2 solid vary($background, 20%);
+QDialog[theme="background"]:active {
+    border: $border-style vary($background, 20%);
 }
 
 // Alert colored sub-theme //
 
 
-QWidget#alert {
+QWidget[theme="alert"] {
     @include base(
-        $alert,
+        vary($alert, 20%),
         $on_secondary,
         $alert,
         $on_secondary,
     );
 }
 
-QDialog#alert {
-    border: 2 solid vary($alert, 10%);
+QDialog[theme="alert"] {
+    border: $border-style vary($alert, 10%);
 }
 
-QDialog#alert:active {
-    border: 2 solid vary($alert, 20%);
+QDialog[theme="alert"]:active {
+    border: $border-style vary($alert, 20%);
 }
 
 // Error colored sub-theme //
 
 
-QWidget#error {
+QWidget[theme="error"] {
     @include base(
+        vary($error, 20%),
         $on_secondary,
-        $error,
         $error,
         $on_secondary,
     );
 }
 
-QDialog#error {
-    border: 2 solid vary($error, 10%);
+QDialog[theme="error"] {
+    border: $border-style vary($error, 10%);
 }
 
-QDialog#error:active {
-    border: 2 solid vary($error, 20%);
+QDialog[theme="error"]:active {
+    border: $border-style vary($error, 20%);
 }
 
 // Success colored sub-theme //
 
 
-QWidget#success {
+QWidget[theme="success"] {
     @include base(
+        vary($success, 20%),
         $on_secondary,
-        $success,
         $success,
         $on_secondary,
     );
 }
 
-QDialog#success {
-    border: 2 solid vary($success, 10%);
+QDialog[theme="success"] {
+    border: $border-style vary($success, 10%);
 }
 
-QDialog#success:active {
-    border: 2 solid vary($success, 20%);
+QDialog[theme="success"]:active {
+    border: $border-style vary($success, 20%);
 }
 
 
 // Info colored sub-theme //
 
 
-QWidget#info {
+QWidget[theme="info"] {
     @include base(
+        vary($info, 20%),
         $on_secondary,
-        $info,
         $info,
         $on_secondary,
     );
 }
 
-QDialog#info {
-    border: 2 solid vary($info, 10%);
+QDialog[theme="info"] {
+    border: $border-style vary($info, 10%);
 }
 
-QDialog#info:active {
-    border: 2 solid vary($info, 20%);
+QDialog[theme="info"]:active {
+    border: $border-style vary($info, 20%);
 }

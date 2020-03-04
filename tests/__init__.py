@@ -12,7 +12,6 @@ from nose.tools import nottest
 
 # Local imports
 import construct
-from construct.constants import DEFAULT_LOGGING
 from construct.settings import restore_default_settings
 from construct.utils import unipath
 
@@ -34,7 +33,8 @@ TEST_LOGGING = dict(
             'level': 'WARNING',
             'handlers': ['console'],
         }
-})
+    },
+)
 
 
 @nottest

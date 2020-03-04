@@ -1,0 +1,23 @@
+// Fonts
+$font_stack: Roboto !default;
+$font_size: 12px !default;
+$font_weight: 400 !default;
+
+// Colors
+$primary: #FF5862 !default;
+$primary_variant: #D72F57 !default;
+$on_primary: #FFFFFF !default;
+$alert: #FACE49 !default;
+$error: #F15555 !default;
+$success: #7EDC9E !default;
+$info: #87CDEB !default;
+$on_secondary: #000000 !default;
+$background: #22222D !default;
+$on_background: #F1F1F3 !default;
+$surface: #414149 !default;
+$on_surface: #F1F1F3 !default;
+$transparent: rgba(0, 0, 0, 0) !default;
+
+// Borders
+$border-style: 1px solid;
+$border-radius: 1px;

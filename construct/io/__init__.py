@@ -35,20 +35,20 @@ class IO(object):
             '(api, project): Set after a project is updated.'
         )
         self.api.define(
-            'before_new_folder',
-            '(api, folder): Sent before a folder is created.'
+            'before_new_bin',
+            '(api, bin): Sent before a bin is created.'
         )
         self.api.define(
-            'after_new_folder',
-            '(api, folder): Sent after a folder is created.'
+            'after_new_bin',
+            '(api, bin): Sent after a bin is created.'
         )
         self.api.define(
-            'before_update_folder',
-            '(api, folder, update): Sent before a folder is updated.'
+            'before_update_bin',
+            '(api, bin, update): Sent before a bin is updated.'
         )
         self.api.define(
-            'after_update_folder',
-            '(api, folder): Set after a folder is updated.'
+            'after_update_bin',
+            '(api, bin): Set after a bin is updated.'
         )
 
     def unload(self):
@@ -75,7 +75,8 @@ class IO(object):
             Generator or cursor yielding projects
         '''
 
-        location = location or self.api.context.location
+        location = location or self.api.context['location']
+        mount = mount or self.api.context['mount']
 
         return self.fsfs.get_projects(location, mount)
 
@@ -94,7 +95,8 @@ class IO(object):
             Project dict or None
         '''
 
-        location = location or self.api.context.location
+        location = location or self.api.context['location']
+        mount = mount or self.api.context['mount']
 
         return self.fsfs.get_project_by_id(_id, location, mount)
 
@@ -113,7 +115,8 @@ class IO(object):
             Project dict or None
         '''
 
-        location = location or self.api.context.location
+        location = location or self.api.context['location']
+        mount = mount or self.api.context['mount']
 
         return self.fsfs.get_project(name, location, mount)
 

@@ -11,6 +11,9 @@ import sys
 from invoke import Collection, Program, task
 
 
+PY2 = sys.version_info.major < 3
+
+
 def joinpath(*parts):
     return os.path.join(*parts).replace('\\', '/')
 
@@ -25,6 +28,11 @@ def tests(ctx, level='WARNING', module=None):
         '--nocapture '
         '--logging-level=%s ' % level
     )
+
+    if PY2:
+        # Prevent nose from importing UI modules
+        nose_cmd += '--exclude-dir="construct/ui"'
+
     if module:
         nose_cmd += module
 
